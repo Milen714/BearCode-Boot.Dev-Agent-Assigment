@@ -15,6 +15,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Chatbot")
     parser.add_argument("user_prompt", type=str, help="User prompt")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
+    parser.add_argument(
+    "--working-directory",
+    default="./calculator",
+    help="Directory the agent is allowed to operate in",
+    )
     args = parser.parse_args()
     print("Hello from BearCode!")
     print("Loading environment variables...")
@@ -30,7 +35,7 @@ def main() -> None:
 
     client = genai.Client(api_key=api_key)
     for i in range(max_agent_iterations):
-        done = generate_content(client, messages, verbose=args.verbose, user_prompt=args.user_prompt)
+        done = generate_content(client, messages, verbose=args.verbose, user_prompt=args.user_prompt, working_directory=args.working_directory,)
         if done:
             return
     print("Error: Agent reached maximum iterations without producing a final response.")
@@ -38,7 +43,11 @@ def main() -> None:
             
 
 
-def generate_content(client: genai.Client, messages: list[types.Content], verbose: bool = False, user_prompt: str = "") -> bool:
+def generate_content(client: genai.Client, 
+                     messages: list[types.Content], 
+                     verbose: bool = False, 
+                     user_prompt: str = "",
+                     working_directory: str = "./calculator") -> bool:
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=messages,
@@ -64,7 +73,7 @@ def generate_content(client: genai.Client, messages: list[types.Content], verbos
     function_results = []
     if response.function_calls:
         for function_call in response.function_calls:
-            function_call_result = call_function(function_call, verbose=verbose)
+            function_call_result = call_function(function_call, verbose=verbose, working_directory=working_directory)
 
             if not function_call_result.parts:
                  raise RuntimeError(f"Function call result is empty for function: {function_call.name}")
